@@ -10,6 +10,6 @@ cd jst
 sudo make install
 ```
 
-# Authors notes
+# Author's notes
 
 Im gonna be honest, im just lazy. There are little to no comments yet, this README is pretty empty, etc. This is just temporary, and will be fleshed out in the future, please bear with me for a while until this gets developed further. 
