@@ -1889,10 +1889,12 @@ void tputtab(int n)
 
 	if (n > 0) {
 		while (x < term.col && n--)
-			for (++x; x < term.col && !term.tabs[x]; ++x) /* nothing */;
+			for (++x; x < term.col && !term.tabs[x]; ++x) /* nothing */
+				;
 	} else if (n < 0) {
 		while (x > 0 && n++)
-			for (--x; x > 0 && !term.tabs[x]; --x) /* nothing */;
+			for (--x; x > 0 && !term.tabs[x]; --x) /* nothing */
+				;
 	}
 	term.c.x = LIMIT(x, 0, term.col - 1);
 }
@@ -2354,7 +2356,8 @@ void tresize(int col, int row)
 		bp = term.tabs + term.col;
 
 		memset(bp, 0, sizeof(*term.tabs) * (col - term.col));
-		while (--bp > term.tabs && !*bp) /* nothing */;
+		while (--bp > term.tabs && !*bp) /* nothing */
+			;
 		for (bp += tabspaces; bp < term.tabs + col; bp += tabspaces) *bp = 1;
 	}
 	/* update terminal size */
