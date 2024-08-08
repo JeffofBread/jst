@@ -8,13 +8,16 @@ PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
 APPPREFIX = $(PREFIX)/share/applications
 
+ICONPREFIX = $(PREFIX)/share/pixmaps
+ICONNAME = jst.png
+
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
 
 # includes and libs
 PKG_CONFIG = pkg-config
 INCS = -I$(X11INC) -I${CONFIGDIR} `$(PKG_CONFIG) --cflags fontconfig` `$(PKG_CONFIG) --cflags freetype2`
-LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft `$(PKG_CONFIG) --libs fontconfig` `$(PKG_CONFIG) --libs freetype2`
+LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft -lgd `$(PKG_CONFIG) --libs fontconfig` `$(PKG_CONFIG) --libs freetype2`
 
 # OpenBSD (untested):
 #CPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600 -D_BSD_SOURCE
@@ -24,7 +27,7 @@ LIBS = -L$(X11LIB) -lm -lrt -lX11 -lutil -lXft `$(PKG_CONFIG) --libs fontconfig`
 #MANPREFIX = ${PREFIX}/man
 
 # flags
-JSTCPPFLAGS = -DVERSION=\"$(VERSION)\" -D_XOPEN_SOURCE=600
+JSTCPPFLAGS = -DVERSION=\"$(VERSION)\" -DICON=\"$(ICONPREFIX)/$(ICONNAME)\" -D_XOPEN_SOURCE=600
 JSTCFLAGS = $(INCS) $(JSTCPPFLAGS) $(CPPFLAGS) $(CFLAGS)
 JSTLDFLAGS = $(LIBS) $(LDFLAGS)
 
@@ -84,6 +87,8 @@ install: jst
 	$Qchmod 755 $(DESTDIR)$(PREFIX)/bin/jst
 	$Qmkdir -p $(DESTDIR)$(APPPREFIX)
 	$Qcp -f ${RESOURCESDIR}/jst.desktop $(DESTDIR)$(APPPREFIX)
+	$Qmkdir -p $(DESTDIR)$(ICONPREFIX)
+	$Q[ -f ${RESOURCESDIR}/$(ICONNAME) ] && cp -f ${RESOURCESDIR}/$(ICONNAME) $(DESTDIR)$(ICONPREFIX) || :
 	$Qmkdir -p $(DESTDIR)$(MANPREFIX)/man1
 	$Qsed "s/VERSION/$(VERSION)/g" < ${RESOURCESDIR}/jst.1 > $(DESTDIR)$(MANPREFIX)/man1/jst.1
 	$Qchmod 644 $(DESTDIR)$(MANPREFIX)/man1/jst.1
@@ -93,6 +98,7 @@ uninstall:
 	@printf "Uninstalling jst binary from $(DESTDIR)$(PREFIX)/bin/jst\n"
 	$Qrm -f $(DESTDIR)$(PREFIX)/bin/jst
 	$Qrm -f $(DESTDIR)$(APPPREFIX)/jst.desktop
+	$Qrm -f $(DESTDIR)$(ICONPREFIX)/$(ICONNAME)
 	$Qrm -f $(DESTDIR)$(MANPREFIX)/man1/jst.1
 
 .PHONY: all clean install uninstall
