@@ -45,6 +45,8 @@ typedef struct {
 	signed char appcursor; /* application cursor */
 } Key;
 
+typedef enum { PixelGeometry, CellGeometry } Geometry;
+
 /* X modifiers */
 #define XK_ANY_MOD UINT_MAX
 #define XK_NO_MOD 0
@@ -105,7 +107,7 @@ typedef struct {
 	XSetWindowAttributes attrs;
 	int scr;
 	int isfixed; /* is fixed geometry? */
-    int depth; /* bit depth */
+	int depth; /* bit depth */
 	int l, t; /* left and top offset */
 	int gm; /* geometry mask */
 } XWindow;
@@ -1016,7 +1018,7 @@ int xicdestroy(XIC xim, XPointer client, XPointer call)
 	return 1;
 }
 
-void xinit(int cols, int rows)
+void xinit(int w, int h)
 {
 	XGCValues gcvalues;
 	Cursor cursor;
@@ -1051,8 +1053,16 @@ void xinit(int cols, int rows)
 	xloadcols();
 
 	/* adjust fixed window geometry */
-	win.w = 2 * borderpx + cols * win.cw;
-	win.h = 2 * borderpx + rows * win.ch;
+	switch (geometry) {
+	case CellGeometry:
+		win.w = 2 * borderpx + w * win.cw;
+		win.h = 2 * borderpx + h * win.ch;
+		break;
+	case PixelGeometry:
+		win.w = w;
+		win.h = h;
+		break;
+	}
 	if (xw.gm & XNegative) xw.l += DisplayWidth(xw.dpy, xw.scr) - win.w - 2;
 	if (xw.gm & YNegative) xw.t += DisplayHeight(xw.dpy, xw.scr) - win.h - 2;
 
@@ -1064,9 +1074,8 @@ void xinit(int cols, int rows)
 			      StructureNotifyMask | ButtonMotionMask | ButtonPressMask | ButtonReleaseMask;
 	xw.attrs.colormap = xw.cmap;
 
-	xw.win =
-		XCreateWindow(xw.dpy, parent, xw.l, xw.t, win.w, win.h, 0, xw.depth, InputOutput,
-			      xw.vis, CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask | CWColormap, &xw.attrs);
+	xw.win = XCreateWindow(xw.dpy, parent, xw.l, xw.t, win.w, win.h, 0, xw.depth, InputOutput, xw.vis,
+			       CWBackPixel | CWBorderPixel | CWBitGravity | CWEventMask | CWColormap, &xw.attrs);
 
 	memset(&gcvalues, 0, sizeof(gcvalues));
 	gcvalues.graphics_exposures = False;
@@ -1839,6 +1848,11 @@ int main(int argc, char *argv[])
 		break;
 	case 'g':
 		xw.gm = XParseGeometry(EARGF(usage()), &xw.l, &xw.t, &cols, &rows);
+		geometry = CellGeometry;
+		break;
+	case 'G':
+		xw.gm = XParseGeometry(EARGF(usage()), &xw.l, &xw.t, &width, &height);
+		geometry = PixelGeometry;
 		break;
 	case 'i':
 		xw.isfixed = 1;
@@ -1875,10 +1889,19 @@ run:
 
 	setlocale(LC_CTYPE, "");
 	XSetLocaleModifiers("");
+	switch (geometry) {
+	case CellGeometry:
+		xinit(cols, rows);
+		break;
+	case PixelGeometry:
+		xinit(width, height);
+		cols = (win.w - 2 * borderpx) / win.cw;
+		rows = (win.h - 2 * borderpx) / win.ch;
+		break;
+	}
 	cols = MAX(cols, 1);
 	rows = MAX(rows, 1);
 	tnew(cols, rows);
-	xinit(cols, rows);
 	xsetenv();
 	selinit();
 	run();
