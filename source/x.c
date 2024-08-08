@@ -83,7 +83,7 @@ typedef XftGlyphFontSpec GlyphFontSpec;
 typedef struct {
 	int tw, th; /* tty width and height */
 	int w, h; /* window width and height */
-    int hborderpx, vborderpx;
+	int hborderpx, vborderpx;
 	int ch; /* char height */
 	int cw; /* char width  */
 	int mode; /* window state/mode flags */
@@ -1445,15 +1445,17 @@ void xdrawcursor(int cx, int cy, Glyph g, int ox, int oy, Glyph og)
 			break;
 		case 5: /* Blinking bar */
 		case 6: /* Steady bar */
-			XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + cy * win.ch, cursorthickness,
-				    win.ch);
+			XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + cy * win.ch,
+				    cursorthickness, win.ch);
 			break;
 		}
 	} else {
 		XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + cy * win.ch, win.cw - 1, 1);
 		XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + cy * win.ch, 1, win.ch - 1);
-		XftDrawRect(xw.draw, &drawcol, win.hborderpx + (cx + 1) * win.cw - 1, win.vborderpx + cy * win.ch, 1, win.ch - 1);
-		XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + (cy + 1) * win.ch - 1, win.cw, 1);
+		XftDrawRect(xw.draw, &drawcol, win.hborderpx + (cx + 1) * win.cw - 1, win.vborderpx + cy * win.ch, 1,
+			    win.ch - 1);
+		XftDrawRect(xw.draw, &drawcol, win.hborderpx + cx * win.cw, win.vborderpx + (cy + 1) * win.ch - 1,
+			    win.cw, 1);
 	}
 }
 
@@ -1719,6 +1721,9 @@ void resize(XEvent *e)
 	cresize(e->xconfigure.width, e->xconfigure.height);
 }
 
+int tinsync(uint);
+int ttyread_pending();
+
 void run(void)
 {
 	XEvent ev;
@@ -1751,7 +1756,7 @@ void run(void)
 		FD_SET(ttyfd, &rfd);
 		FD_SET(xfd, &rfd);
 
-		if (XPending(xw.dpy)) timeout = 0; /* existing events might not set xfd */
+		if (XPending(xw.dpy) || ttyread_pending()) timeout = 0; /* existing events might not set xfd */
 
 		seltv.tv_sec = timeout / 1E3;
 		seltv.tv_nsec = 1E6 * (timeout - 1E3 * seltv.tv_sec);
@@ -1763,7 +1768,8 @@ void run(void)
 		}
 		clock_gettime(CLOCK_MONOTONIC, &now);
 
-		if (FD_ISSET(ttyfd, &rfd)) ttyread();
+		int ttyin = FD_ISSET(ttyfd, &rfd) || ttyread_pending();
+		if (ttyin) ttyread();
 
 		xev = 0;
 		while (XPending(xw.dpy)) {
@@ -1784,13 +1790,25 @@ void run(void)
 		 * maximum latency intervals during `cat huge.txt`, and perfect
 		 * sync with periodic updates from animations/key-repeats/etc.
 		 */
-		if (FD_ISSET(ttyfd, &rfd) || xev) {
+		if (ttyin || xev) {
 			if (!drawing) {
 				trigger = now;
 				drawing = 1;
 			}
 			timeout = (maxlatency - TIMEDIFF(now, trigger)) / maxlatency * minlatency;
 			if (timeout > 0) continue; /* we have time, try to find idle */
+		}
+
+		if (tinsync(su_timeout)) {
+			/*
+			 * on synchronized-update draw-suspension: don't reset
+			 * drawing so that we draw ASAP once we can (just after
+			 * ESU). it won't be too soon because we already can
+			 * draw now but we skip. we set timeout > 0 to draw on
+			 * SU-timeout even without new content.
+			 */
+			timeout = minlatency;
+			continue;
 		}
 
 		/* idle detected or maxlatency exhausted -> draw */
