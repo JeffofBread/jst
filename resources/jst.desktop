@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Exec=jst
+TryExec=jst
+Icon=jst
+Terminal=false
+Categories=System;TerminalEmulator;
+
+Name=jst
+GenericName=Terminal
+Comment=jst is a simple terminal implementation for X, patched by JeffofBread
+StartupWMClass=jst-256color

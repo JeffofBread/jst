@@ -6,6 +6,7 @@ VERSION = 0.1
 # paths
 PREFIX = /usr/local
 MANPREFIX = $(PREFIX)/share/man
+APPPREFIX = $(PREFIX)/share/applications
 
 X11INC = /usr/X11R6/include
 X11LIB = /usr/X11R6/lib
@@ -81,6 +82,8 @@ install: jst
 	$Qmkdir -p $(DESTDIR)$(PREFIX)/bin
 	$Qcp -f ${BUILDDIR}/jst $(DESTDIR)$(PREFIX)/bin
 	$Qchmod 755 $(DESTDIR)$(PREFIX)/bin/jst
+	$Qmkdir -p $(DESTDIR)$(APPPREFIX)
+	$Qcp -f ${RESOURCESDIR}/jst.desktop $(DESTDIR)$(APPPREFIX)
 	$Qmkdir -p $(DESTDIR)$(MANPREFIX)/man1
 	$Qsed "s/VERSION/$(VERSION)/g" < ${RESOURCESDIR}/jst.1 > $(DESTDIR)$(MANPREFIX)/man1/jst.1
 	$Qchmod 644 $(DESTDIR)$(MANPREFIX)/man1/jst.1
@@ -89,6 +92,7 @@ install: jst
 uninstall:
 	@printf "Uninstalling jst binary from $(DESTDIR)$(PREFIX)/bin/jst\n"
 	$Qrm -f $(DESTDIR)$(PREFIX)/bin/jst
+	$Qrm -f $(DESTDIR)$(APPPREFIX)/jst.desktop
 	$Qrm -f $(DESTDIR)$(MANPREFIX)/man1/jst.1
 
 .PHONY: all clean install uninstall
